@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import styled from "styled-components";
-import { signInWithPopup } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth, provider } from "../firebaseConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import {
   selectUserEmail,
   selectUserPhoto,
   setUserLoginDetails,
+  signOutState,
 } from "../feature/user/userSlice";
 
 const Header = () => {
@@ -18,23 +19,41 @@ const Header = () => {
   const userPhoto = useSelector(selectUserPhoto);
   const userEmail = useSelector(selectUserEmail);
 
+  useEffect(() => {
+    onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        navigate("/home");
+      }
+    });
+  }, [userName]);
+
   const handleAuth = async () => {
-    try {
-      const user = await signInWithPopup(auth, provider);
-      console.log(user.user.photoURL);
-      setUser(user.user);
-    } catch (error) {
-      console.log(error);
+    if (!userName) {
+      try {
+        const user = await signInWithPopup(auth, provider);
+        setUser(user.user);
+      } catch (error) {
+        console.log(error);
+      }
+    } else if (userName) {
+      try {
+        await signOut(auth);
+        dispatch(signOutState());
+        navigate("/");
+      } catch (error) {
+        console.log(error);
+      }
     }
   };
 
   const setUser = (user) => {
-    console.log(user.photoURL)
+    console.log("photo",user.photoURL);
     dispatch(
       setUserLoginDetails({
         name: user.displayName,
         email: user.email,
-        photo: user.photoURl,
+        photo: user.photoURL,
       })
     );
   };
@@ -74,9 +93,12 @@ const Header = () => {
               <span>SERIES</span>
             </a>
           </NavMenu>
-          <img src={userPhoto} alt="adasd" />
-          <UserImg src={userPhoto} alt={userName} />
-          <h1>{userPhoto}</h1>
+          <SignOut>
+            <UserImg src={userPhoto} alt={userName} />
+            <DropDown>
+              <span onClick={handleAuth}>Sign out</span>
+            </DropDown>
+          </SignOut>
         </>
       )}
     </Nav>
@@ -192,6 +214,44 @@ const Login = styled.a`
 
 const UserImg = styled.img`
   height: 100%;
+`;
+
+const DropDown = styled.div`
+  position: absolute;
+  top: 48px;
+  right: 0px;
+  background: rgb(19, 19, 19);
+  border: 1px solid rgba(151, 151, 151, 0.34);
+  border-radius: 4px;
+  box-shadow: rgb(0 0 0 / 50%) 0px 0px 18px 0px;
+  padding: 10px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  width: 100px;
+  opacity: 0;
+`;
+
+const SignOut = styled.div`
+  position: relative;
+  height: 48px;
+  width: 48px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  ${UserImg} {
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+  }
+
+  &:hover {
+    ${DropDown} {
+      opacity: 1;
+      transition-delay: 1s;
+    }
+  }
 `;
 
 export default Header;
