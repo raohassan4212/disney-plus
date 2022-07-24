@@ -61,7 +61,7 @@ const Header = () => {
   return (
     <Nav>
       <Logo>
-        <img src="./images/logo.svg" alt="logo" />
+        <img src="/images/logo.svg" alt="logo" />
       </Logo>
       {!userName ? (
         <Login onClick={handleAuth}>Login</Login>
